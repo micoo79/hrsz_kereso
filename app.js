@@ -21,11 +21,15 @@
   // Üresen hagyva a nyilvános allorigins proxy a tartalék.
   const PROXY_BASE = "";
 
-  // A próbálkozási sorrend: közvetlen -> saját proxy (ha van) -> nyilvános proxy.
+  // A próbálkozási sorrend: közvetlen -> saját proxy (ha van) -> nyilvános proxyk.
+  // Több nyilvános proxy is szerepel, mert ezek egyenként megbízhatatlanok lehetnek;
+  // ha az egyik nem elérhető, a kód automatikusan a következőt próbálja.
   const PROXY_CHAIN = [
-    (url) => url, // közvetlen
+    (url) => url, // közvetlen (akkor működik, ha az OENY enged CORS-t)
     PROXY_BASE ? (url) => PROXY_BASE + encodeURIComponent(url) : null,
+    (url) => "https://corsproxy.io/?url=" + encodeURIComponent(url),
     (url) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+    (url) => "https://thingproxy.freeboard.io/fetch/" + url,
   ].filter(Boolean);
 
   // Az a proxy-index, amelyik utoljára működött (gyorsítótár).
@@ -163,7 +167,12 @@
       renderSettlementSuggestions(toList(data));
     } catch (err) {
       settlementList.hidden = true;
-      showStatus("Nem sikerült elérni az OENY település-keresőt. " + err.message, true);
+      showStatus(
+        "Nem sikerült elérni az OENY település-keresőt (" + err.message + "). " +
+          "A nyilvános proxyk épp nem elérhetők – állíts be saját Cloudflare Workert " +
+          "(lásd cloudflare-worker.js).",
+        true
+      );
     } finally {
       toggleSpinner("settlement", false);
     }
