@@ -105,6 +105,8 @@
   const statusMessage = document.getElementById("status-message");
   const mapFrame = document.getElementById("map-frame");
   const mapPlaceholder = document.getElementById("map-placeholder");
+  const mapToggle = document.getElementById("map-toggle");
+  const svButton = document.getElementById("sv-btn");
 
   // A kiválasztott település (név + KSH-kód).
   let selectedSettlement = null;
@@ -293,8 +295,9 @@
 
     const titleLine = addressText ? settlementName + ", " + addressText : settlementName;
 
-    // Térkép a találat címére (ha van cím; különben a településre).
-    showMap(addresses[0] ? addresses[0] + ", " + settlementName : settlementName);
+    // Térkép a találatra: pontos EOV-koordináta, tartalékként a cím szövege.
+    const latlng = parcelLatLng(detail);
+    showMap(addresses[0] ? addresses[0] + ", " + settlementName : settlementName, latlng);
 
     const card = document.createElement("article");
     card.className = "result-card";
@@ -321,16 +324,77 @@
     return String(value);
   }
 
-  // ---- Térkép ----
-  // A megadott címet/települést jeleníti meg beágyazott Google térképen.
-  function showMap(query) {
-    if (!mapFrame || !query) return;
-    mapFrame.src =
-      "https://maps.google.com/maps?q=" +
-      encodeURIComponent(query + ", Magyarország") +
-      "&z=18&output=embed";
+  // ---- Térkép / Utcakép ----
+  // EOV (HD72 / EPSG:23700) -> WGS84 átvetítés a pontos pozícióhoz.
+  if (typeof proj4 !== "undefined") {
+    proj4.defs(
+      "EPSG:23700",
+      "+proj=somerc +lat_0=47.14439372222222 +lon_0=19.04857177777778 " +
+        "+k_0=0.99993 +x_0=650000 +y_0=200000 +ellps=GRS67 " +
+        "+towgs84=52.17,-71.82,-14.9,0,0,0,0 +units=m +no_defs"
+    );
+  }
+
+  let mapMode = "map"; // "map" vagy "sv" (utcakép)
+  let mapLatLng = null; // "lat,lng" vagy null
+  let mapQuery = null; // cím szöveg (tartalék, ha nincs koordináta)
+
+  // EOV koordináta -> "lat,lng" sztring a bounding-box válaszból.
+  function parcelLatLng(detail) {
+    if (!detail || typeof proj4 === "undefined") return null;
+    let x, y;
+    if (detail.point && detail.point.x != null) {
+      x = detail.point.x;
+      y = detail.point.y;
+    } else if (detail.boundingBox && detail.boundingBox.min && detail.boundingBox.max) {
+      x = (detail.boundingBox.min.x + detail.boundingBox.max.x) / 2;
+      y = (detail.boundingBox.min.y + detail.boundingBox.max.y) / 2;
+    } else {
+      return null;
+    }
+    try {
+      const wgs = proj4("EPSG:23700", "WGS84", [x, y]);
+      return wgs[1].toFixed(7) + "," + wgs[0].toFixed(7);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function renderMapFrame() {
+    if (!mapFrame) return;
+    let src = null;
+    if (mapMode === "sv" && mapLatLng) {
+      src =
+        "https://maps.google.com/maps?q=&layer=c&cbll=" +
+        mapLatLng +
+        "&cbp=12,0,0,0,0&output=svembed";
+    } else if (mapLatLng) {
+      src = "https://maps.google.com/maps?q=" + mapLatLng + "&z=18&output=embed";
+    } else if (mapQuery) {
+      src =
+        "https://maps.google.com/maps?q=" +
+        encodeURIComponent(mapQuery + ", Magyarország") +
+        "&z=18&output=embed";
+    }
+    if (!src) return;
+
+    mapFrame.src = src;
     mapFrame.hidden = false;
     if (mapPlaceholder) mapPlaceholder.hidden = true;
+    if (mapToggle) mapToggle.hidden = false;
+    // Utcakép csak pontos koordinátával érhető el.
+    if (svButton) svButton.disabled = !mapLatLng;
+    document.querySelectorAll(".map-toggle-btn").forEach((b) =>
+      b.classList.toggle("is-active", b.dataset.mode === mapMode)
+    );
+  }
+
+  // A találathoz beállítja a térkép adatait és kirajzolja.
+  function showMap(query, latlng) {
+    mapQuery = query || null;
+    mapLatLng = latlng || null;
+    if (!mapLatLng) mapMode = "map"; // utcakép koordináta nélkül nem megy
+    renderMapFrame();
   }
 
   // ---- Töltésjelző ----
@@ -381,6 +445,15 @@
   settlementInput.addEventListener("input", searchSettlements);
   settlementInput.addEventListener("focus", () => {
     if (settlementList.children.length && !selectedSettlement) settlementList.hidden = false;
+  });
+
+  // Térkép / Utcakép váltó.
+  document.querySelectorAll(".map-toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      mapMode = btn.dataset.mode;
+      renderMapFrame();
+    });
   });
 
   lotInput.addEventListener("input", searchLots);

@@ -372,6 +372,45 @@ body {
   border: 0;
 }
 
+/* Térkép / Utcakép váltó */
+.map-toggle {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--white);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+
+.map-toggle-btn {
+  padding: 7px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.map-toggle-btn:hover { color: var(--brand); }
+
+.map-toggle-btn.is-active {
+  background: var(--brand);
+  color: var(--white);
+}
+
+.map-toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .map-placeholder {
   text-align: center;
   color: #aab0c0;
