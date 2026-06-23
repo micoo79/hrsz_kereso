@@ -10,19 +10,20 @@ A weboldal a GitHub Pages-en érhető el:
 
 ## 🚀 Hogyan frissül az oldal?
 
-Az oldal automatikusan deployolódik a `.github/workflows/deploy.yml` GitHub Actions
-workflow segítségével. Minden a `main` ágra történő push után a workflow lefut, és
-néhány percen belül frissül az élő oldal.
+Az oldal a GitHub Pages **„Deploy from a branch”** módjával publikál a `main` ágról.
+Minden a `main` ágra történő push után a Pages néhány percen belül automatikusan
+újraépíti és frissíti az élő oldalt – nincs szükség külön workflow-ra.
 
-### Egyszeri beállítás (ha még nincs engedélyezve a Pages)
+### Egyszeri beállítás
 
-Ha az első deploy hibára futna, a repó **Settings → Pages** menüpontjában a
-**Source** legyen **GitHub Actions**. Ezután a workflow magától deployol.
+A repó **Settings → Pages → Build and deployment** részén:
+
+- **Source:** Deploy from a branch
+- **Branch:** `main` / `/(root)` → Save
 
 ## 📁 Felépítés
 
 - `index.html` – a webalkalmazás belépő oldala (jelenleg egy Hello World teszt)
-- `.github/workflows/deploy.yml` – automatikus deploy GitHub Pages-re
 - `.nojekyll` – kikapcsolja a Jekyll feldolgozást (statikus oldalként szolgáljuk ki)
 
 ## 🛠️ Fejlesztés
