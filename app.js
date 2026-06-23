@@ -666,8 +666,10 @@
       paths.forEach((ring) => boundaryRings.push(ring));
     });
 
-    // A telekhatárt apró pontokkal is kirakjuk – ezek a Street View-ban is
-    // látszanak (a Polygon ott nem jelenik meg, csak a markerek).
+    // A telekhatárt apró pontokkal is kirakjuk, de ezeket a Street View
+    // PANORÁMÁHOZ kötjük – így CSAK utcaképen látszanak, a felülnézeti
+    // térképen nem (ott a Polygon mutatja a határt).
+    const panorama = gmap.getStreetView();
     const dots = boundaryDots(boundaryRings, 3, 220);
     const dotIcon = {
       path: google.maps.SymbolPath.CIRCLE,
@@ -679,7 +681,7 @@
     };
     dots.forEach((d) => {
       parcelBoundaryMarkers.push(
-        new google.maps.Marker({ position: d, map: gmap, icon: dotIcon, clickable: false, zIndex: 5 })
+        new google.maps.Marker({ position: d, map: panorama, icon: dotIcon, clickable: false, zIndex: 5 })
       );
     });
 
