@@ -198,12 +198,29 @@
     lotInput.setAttribute("aria-expanded", "true");
   }
 
-  function selectLot(item, hrsz) {
+  async function selectLot(item, hrsz) {
     if (hrsz) lotInput.value = hrsz;
     lotList.hidden = true;
     lotInput.setAttribute("aria-expanded", "false");
     hideStatus();
-    renderResults([item]);
+
+    const id = pick(item, ["id", "parcelId"], "");
+    if (!id) {
+      renderParcelCard(null, item, hrsz);
+      return;
+    }
+
+    results.hidden = true;
+    showStatus("Cím betöltése…", false);
+    try {
+      const detail = await fetchOeny("/parcels/bounding-box?id=" + encodeURIComponent(id));
+      hideStatus();
+      renderParcelCard(detail, item, hrsz);
+    } catch (err) {
+      // Ha a részletek nem jönnek be, legalább az alap adatokat mutassuk.
+      hideStatus();
+      renderParcelCard(null, item, hrsz);
+    }
   }
 
   const searchLots = debounce(async function () {
@@ -236,44 +253,59 @@
     }
   }, 300);
 
-  function renderResults(items) {
+  // A térkép-réteghez később felhasználható geometria (EOV / EPSG:23700).
+  let lastParcelGeometry = null;
+
+  // Egy parcella találati kártyájának kirajzolása.
+  // detail: a /parcels/bounding-box válasza (vagy null); item: a parcels/search elem.
+  function renderParcelCard(detail, item, fallbackHrsz) {
     resultsList.innerHTML = "";
 
-    if (!items.length) {
-      results.hidden = true;
-      showStatus("Nincs találat a megadott helyrajzi számra.", false);
-      return;
+    const settlementName =
+      (detail && detail.settlement && detail.settlement.name) ||
+      pick(item, ["settlementName", "telepulesNev", "settlement"], selectedSettlement.name);
+
+    const hrsz =
+      (detail && detail.lotNumber) ||
+      pick(item, ["lotNumber", "hrsz", "helyrajziSzam"], fallbackHrsz || "");
+
+    const laymentRaw =
+      (detail && detail.layment) || pick(item, ["layment", "fekves", "type"], "");
+    const fekvesLabel = formatFekves(laymentRaw);
+
+    // A bounding-box több címet is visszaadhat (pl. saroktelek).
+    const addresses =
+      detail && Array.isArray(detail.addresses)
+        ? detail.addresses.map((a) => a && a.address && a.address.address).filter(Boolean)
+        : [];
+    const addressText = addresses.join(" · ");
+
+    // Geometria eltárolása a későbbi térkép-megjelenítéshez.
+    if (detail) {
+      lastParcelGeometry = {
+        boundingBox: detail.boundingBox || null,
+        outline: detail.outline || null,
+        point: detail.point || null,
+      };
     }
 
-    items.forEach((item) => {
-      const settlementName =
-        pick(item, ["settlementName", "telepulesNev", "settlement", "telepules"], selectedSettlement.name);
-      const address = pick(item, ["address", "cim", "fullAddress", "displayAddress"], "");
-      const hrsz = pick(item, ["lotNumber", "hrsz", "helyrajziSzam"], lotInput.value.trim());
-      const fekvesRaw = pick(item, ["fekves", "type", "lotType", "areaType"], "");
-      const fekvesLabel = formatFekves(fekvesRaw);
+    const titleLine = addressText ? settlementName + ", " + addressText : settlementName;
+    const link = buildPropertySheetLink(settlementName, laymentRaw, hrsz, addresses[0] || "");
 
-      const titleLine = address
-        ? settlementName + ", " + address
-        : settlementName;
+    const card = document.createElement("article");
+    card.className = "result-card";
+    card.innerHTML =
+      '<p class="result-card-address">' + escapeHtml(titleLine) + "</p>" +
+      '<p class="result-card-hrsz">HRSZ: ' + escapeHtml(hrsz) + "</p>" +
+      '<div class="result-card-footer-items">' +
+        (fekvesLabel ? '<span class="result-card-tag">' + escapeHtml(fekvesLabel) + "</span>" : "<span></span>") +
+        '<a class="property-sheet-navigation-link" href="' + link + '" target="_blank" rel="noopener">' +
+          'Tulajdoni lap <span class="chevron" aria-hidden="true">›</span>' +
+        "</a>" +
+      "</div>";
+    resultsList.appendChild(card);
 
-      const link = buildPropertySheetLink(settlementName, fekvesRaw, hrsz, address);
-
-      const card = document.createElement("article");
-      card.className = "result-card";
-      card.innerHTML =
-        '<p class="result-card-address">' + escapeHtml(titleLine) + "</p>" +
-        '<p class="result-card-hrsz">HRSZ: ' + escapeHtml(hrsz) + "</p>" +
-        '<div class="result-card-footer-items">' +
-          (fekvesLabel ? '<span class="result-card-tag">' + escapeHtml(fekvesLabel) + "</span>" : "<span></span>") +
-          '<a class="property-sheet-navigation-link" href="' + link + '" target="_blank" rel="noopener">' +
-            'Tulajdoni lap <span class="chevron" aria-hidden="true">›</span>' +
-          "</a>" +
-        "</div>";
-      resultsList.appendChild(card);
-    });
-
-    resultsTitle.textContent = "Találatok (" + items.length + " db)";
+    resultsTitle.textContent = "Találatok (1 db)";
     results.hidden = false;
   }
 
