@@ -303,6 +303,18 @@ body {
   border-top: 1px solid var(--border);
 }
 
+.cad-office {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 12px;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.cad-office-ic { flex-shrink: 0; }
+
 .cadastral-title {
   margin: 0 0 10px;
   font-size: 0.78rem;

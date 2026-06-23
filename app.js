@@ -344,6 +344,7 @@
     kVet: 7, kMer: 8, kFeld: 9, kFelm: 10, kHely: 11,
     kkVet: 12, kkMer: 13, kkFeld: 14, kkFelm: 15, kkHely: 16,
     at2000: 17, at4000: 18, at5000: 19, at10000: 20,
+    hiv: 23,
   };
   // Megengedett hibahatárok vetülettípus + méretarány szerint.
   const EOTR_V = new Set(["EOV", "DAT"]);
@@ -432,8 +433,15 @@
     const vet = cadVal(row[cat.vet]);
     const mer = cadVal(row[cat.mer]);
 
-    let html =
-      '<div class="cadastral">' +
+    const office = cadVal(row[CADI.hiv]);
+
+    let html = '<div class="cadastral">';
+    if (office) {
+      html +=
+        '<div class="cad-office"><span class="cad-office-ic" aria-hidden="true">🏛</span>' +
+        '<span>' + escapeHtml(office) + "</span></div>";
+    }
+    html +=
       '<p class="cadastral-title">Térképi alapadatok · ' +
       escapeHtml(cat.label) +
       "</p>" +
