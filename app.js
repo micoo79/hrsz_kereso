@@ -301,9 +301,13 @@
 
     const titleLine = addressText ? settlementName + ", " + addressText : settlementName;
 
-    // Térkép a találatra: pontos EOV-koordináta, tartalékként a cím szövege.
+    // Térkép a találatra: pontos EOV-koordináta + telekhatár, tartalékként a cím.
     const latlng = parcelLatLng(detail);
-    showMap(addresses[0] ? addresses[0] + ", " + settlementName : settlementName, latlng);
+    showMap(
+      addresses[0] ? addresses[0] + ", " + settlementName : settlementName,
+      latlng,
+      detail
+    );
 
     const card = document.createElement("article");
     card.className = "result-card";
@@ -396,13 +400,14 @@
   }
 
   // A találathoz beállítja a térkép adatait és kirajzolja.
-  function showMap(query, latlng) {
+  function showMap(query, latlng, detail) {
     mapQuery = query || null;
     mapLatLng = latlng || null;
 
-    // Ha van API-kulcs és pontos koordináta: interaktív térkép húzható Pegmannel.
+    // Ha van API-kulcs és pontos koordináta: interaktív térkép húzható
+    // Pegmannel és a telekhatár poligonjával.
     if (MAPS_API_KEY && mapLatLng) {
-      showInteractiveMap(mapLatLng);
+      showInteractiveMap(mapLatLng, detail);
       return;
     }
 
@@ -414,6 +419,7 @@
   let gmap = null;
   let gmarker = null;
   let gmapsLoading = null;
+  let parcelPolygons = [];
 
   function ensureGoogleMaps() {
     if (window.google && window.google.maps) return Promise.resolve();
@@ -431,7 +437,7 @@
     return gmapsLoading;
   }
 
-  async function showInteractiveMap(latlngStr) {
+  async function showInteractiveMap(latlngStr, detail) {
     const parts = latlngStr.split(",");
     const pos = { lat: parseFloat(parts[0]), lng: parseFloat(parts[1]) };
 
@@ -443,7 +449,6 @@
       return;
     }
 
-    if (mapToggle) mapToggle.hidden = true; // a JS-térképnek saját vezérlői vannak
     if (mapFrame) mapFrame.hidden = true;
     if (mapPlaceholder) mapPlaceholder.hidden = true;
     if (mapCanvas) mapCanvas.hidden = false;
@@ -451,7 +456,8 @@
     if (!gmap) {
       gmap = new google.maps.Map(mapCanvas, {
         center: pos,
-        zoom: 18,
+        zoom: 19,
+        mapTypeId: google.maps.MapTypeId.HYBRID, // műholdkép alapértelmezetten
         streetViewControl: true, // a húzható sárga emberke (Pegman)
         mapTypeControl: true,
         fullscreenControl: true,
@@ -461,6 +467,49 @@
       gmap.setCenter(pos);
       gmarker.setPosition(pos);
     }
+
+    drawParcelOutline(detail);
+  }
+
+  // A telekhatárt rajzolja ki a bounding-box outline poligonjából (EOV -> WGS84).
+  function drawParcelOutline(detail) {
+    // Korábbi határvonal törlése.
+    parcelPolygons.forEach((p) => p.setMap(null));
+    parcelPolygons = [];
+
+    const outline = detail && detail.outline;
+    if (!outline || typeof proj4 === "undefined") return;
+    if (outline.type !== "MultiPolygon" && outline.type !== "Polygon") return;
+
+    // Egységesítés: poligonok tömbje, mindegyik gyűrűk (rings) tömbje.
+    const polygons =
+      outline.type === "MultiPolygon" ? outline.coordinates : [outline.coordinates];
+
+    const bounds = new google.maps.LatLngBounds();
+
+    polygons.forEach((rings) => {
+      const paths = rings.map((ring) =>
+        ring.map((pt) => {
+          const wgs = proj4("EPSG:23700", "WGS84", [pt[0], pt[1]]);
+          const latlng = { lat: wgs[1], lng: wgs[0] };
+          bounds.extend(latlng);
+          return latlng;
+        })
+      );
+      const poly = new google.maps.Polygon({
+        paths: paths,
+        strokeColor: "#FF3B30",
+        strokeOpacity: 1,
+        strokeWeight: 2,
+        fillColor: "#FF3B30",
+        fillOpacity: 0.12,
+        map: gmap,
+      });
+      parcelPolygons.push(poly);
+    });
+
+    // A térképet a telekhatárhoz igazítjuk.
+    if (!bounds.isEmpty()) gmap.fitBounds(bounds);
   }
 
   // ---- Töltésjelző ----
@@ -511,15 +560,6 @@
   settlementInput.addEventListener("input", searchSettlements);
   settlementInput.addEventListener("focus", () => {
     if (settlementList.children.length && !selectedSettlement) settlementList.hidden = false;
-  });
-
-  // Térkép / Utcakép váltó.
-  document.querySelectorAll(".map-toggle-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (btn.disabled) return;
-      mapMode = btn.dataset.mode;
-      renderMapFrame();
-    });
   });
 
   lotInput.addEventListener("input", searchLots);
