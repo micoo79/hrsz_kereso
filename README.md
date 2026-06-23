@@ -23,8 +23,21 @@ A repó **Settings → Pages → Build and deployment** részén:
 
 ## 📁 Felépítés
 
-- `index.html` – a webalkalmazás belépő oldala (jelenleg egy Hello World teszt)
+- `index.html` – a kereső belépő oldala a bal oldali kereső panellel
+- `styles.css` – az oldal stílusai (indigókék arculat)
+- `app.js` – a kereső interakciói (fülváltás, mezőtörlés)
 - `.nojekyll` – kikapcsolja a Jekyll feldolgozást (statikus oldalként szolgáljuk ki)
+
+## 🔎 Funkció
+
+A bal oldali **kereső panel** az OENY Helyrajziszám-kereső felépítését követi:
+
+- **Település** mező
+- **Keresés módja** fülek: *Cím* / *Helyrajzi szám*
+- találati kártya (cím, HRSZ, bel-/külterület címke, „Tulajdoni lap" link)
+
+> Jelenleg a kereső a felületet (UI) valósítja meg. Az élő adatlekérdezés
+> (település- és HRSZ-keresés tényleges adatforrásból) a következő lépés.
 
 ## 🛠️ Fejlesztés
 

@@ -3,80 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HRSZ Kereső – Hello World</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --accent: #38bdf8;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      background: radial-gradient(circle at top, #1e293b, var(--bg));
-      color: var(--text);
-      padding: 1.5rem;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid #334155;
-      border-radius: 16px;
-      padding: 2.5rem 2rem;
-      max-width: 480px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-    }
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: 1.9rem;
-      color: var(--accent);
-    }
-    p { color: var(--muted); line-height: 1.6; }
-    code {
-      background: #0f172a;
-      padding: 0.15rem 0.45rem;
-      border-radius: 6px;
-      color: var(--accent);
-      font-size: 0.9em;
-    }
-    .badge {
-      display: inline-block;
-      margin-top: 1.5rem;
-      padding: 0.4rem 0.9rem;
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid var(--accent);
-      border-radius: 999px;
-      font-size: 0.85rem;
-      color: var(--accent);
-    }
-    .time { font-size: 0.8rem; margin-top: 1rem; color: var(--muted); }
-  </style>
+  <title>Helyrajziszám-kereső</title>
+  <meta name="description" content="Helyrajziszám-kereső: ingatlanok helyrajzi számának (HRSZ) keresése település és cím vagy helyrajzi szám alapján." />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="card">
-    <h1>👋 Hello World!</h1>
-    <p>
-      Ez a <strong>HRSZ Kereső</strong> projekt teszt oldala.<br />
-      Ha ezt látod, a GitHub Pages deploy <strong>működik</strong>. 🎉
-    </p>
-    <p>
-      A weboldal forrása a <code>main</code> ág, és minden push után
-      automatikusan frissül.
-    </p>
-    <span class="badge">GitHub Pages · élő</span>
-    <p class="time" id="loaded"></p>
-  </main>
-  <script>
-    document.getElementById("loaded").textContent =
-      "Oldal betöltve: " + new Date().toLocaleString("hu-HU");
-  </script>
+  <div class="layout">
+    <!-- ====== BAL OLDALI KERESŐ PANEL ====== -->
+    <aside class="search-container">
+      <!-- Fejléc -->
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="brand-title">Helyrajziszám-kereső</span>
+        </div>
+      </header>
+
+      <div class="search-form-container">
+        <!-- Bevezető -->
+        <p class="parcel-info">
+          A Helyrajziszám-keresővel könnyedén megtalálhatja bármely magyarországi
+          ingatlan helyrajzi számát (HRSZ) és telekhatárait térképen.
+        </p>
+
+        <!-- Kereső űrlap -->
+        <form class="search-form" autocomplete="off" novalidate>
+          <!-- Település -->
+          <div class="field">
+            <label class="form-label" for="settlement">Település</label>
+            <div class="input-wrap">
+              <input
+                type="text"
+                id="settlement"
+                name="settlement"
+                class="text-input"
+                placeholder="pl.: Szeged"
+              />
+              <button type="button" class="clear-btn" data-clear="settlement" aria-label="Törlés" hidden>&times;</button>
+            </div>
+          </div>
+
+          <!-- Keresés módja -->
+          <div class="field">
+            <span class="form-label">Keresés módja</span>
+            <div class="tabs" role="tablist">
+              <button type="button" class="tab" role="tab" data-tab="cim" aria-selected="false">Cím</button>
+              <button type="button" class="tab is-active" role="tab" data-tab="hrsz" aria-selected="true">Helyrajzi szám</button>
+            </div>
+
+            <!-- Helyrajzi szám fül -->
+            <div class="tab-panel" data-panel="hrsz">
+              <div class="input-wrap">
+                <input
+                  type="text"
+                  id="lotNumber"
+                  name="lotNumber"
+                  class="text-input"
+                  placeholder="pl.: 1234/A/12"
+                />
+                <button type="button" class="clear-btn" data-clear="lotNumber" aria-label="Törlés" hidden>&times;</button>
+              </div>
+            </div>
+
+            <!-- Cím fül -->
+            <div class="tab-panel" data-panel="cim" hidden>
+              <div class="input-wrap">
+                <input
+                  type="text"
+                  id="address"
+                  name="address"
+                  class="text-input"
+                  placeholder="pl.: Arany János út 22"
+                />
+                <button type="button" class="clear-btn" data-clear="address" aria-label="Törlés" hidden>&times;</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Találatok -->
+        <section class="result-card-wrapper">
+          <p class="result-card-title">Találatok (1 db)</p>
+
+          <article class="result-card">
+            <p class="result-card-address">Magyarnándor, Arany János út 22</p>
+            <p class="result-card-hrsz">HRSZ: 467</p>
+            <div class="result-card-footer-items">
+              <span class="result-card-tag">Belterület</span>
+              <a
+                class="property-sheet-navigation-link"
+                href="https://magyarorszag.hu/eing_new?hrsz.telepules=Magyarn%C3%A1ndor&hrsz.fekves=BELTERULET&hrsz.hrszFold=467&cim=Arany%20J%C3%A1nos%20%C3%BAt%2022"
+                target="_blank"
+                rel="noopener"
+              >
+                Tulajdoni lap <span class="chevron" aria-hidden="true">›</span>
+              </a>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <!-- Lábléc -->
+      <footer class="app-footer">
+        <span class="footer-version">HRSZ Kereső</span>
+      </footer>
+    </aside>
+
+    <!-- ====== JOBB OLDAL: térkép helye (később) ====== -->
+    <main class="map-container" aria-label="Térkép">
+      <div class="map-placeholder">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" fill="currentColor"/>
+        </svg>
+        <p>Térkép</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
