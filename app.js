@@ -98,7 +98,7 @@
   const settlementInput = document.getElementById("settlement");
   const settlementList = document.getElementById("settlement-list");
   const lotInput = document.getElementById("lotNumber");
-  const hrszButton = document.getElementById("hrsz-search");
+  const lotList = document.getElementById("lot-list");
   const results = document.getElementById("results");
   const resultsTitle = document.getElementById("results-title");
   const resultsList = document.getElementById("results-list");
@@ -177,41 +177,64 @@
     }
   }, 300);
 
-  // ---- Helyrajzi szám keresés ----
-  async function searchParcels() {
-    const lot = lotInput.value.trim();
+  // ---- Helyrajzi szám autocomplete ----
+  function renderLotSuggestions(items) {
+    lotList.innerHTML = "";
+    if (!items.length) {
+      lotList.innerHTML = '<li class="empty">Nincs találat</li>';
+      lotList.hidden = false;
+      return;
+    }
+    items.forEach((item) => {
+      const hrsz = pick(item, ["lotNumber", "hrsz", "helyrajziSzam"], "");
+      const address = pick(item, ["address", "cim", "fullAddress", "displayAddress"], "");
+      const li = document.createElement("li");
+      li.setAttribute("role", "option");
+      li.innerHTML = escapeHtml(hrsz) + (address ? "<small>" + escapeHtml(address) + "</small>" : "");
+      li.addEventListener("click", () => selectLot(item, hrsz));
+      lotList.appendChild(li);
+    });
+    lotList.hidden = false;
+    lotInput.setAttribute("aria-expanded", "true");
+  }
+
+  function selectLot(item, hrsz) {
+    if (hrsz) lotInput.value = hrsz;
+    lotList.hidden = true;
+    lotInput.setAttribute("aria-expanded", "false");
+    hideStatus();
+    renderResults([item]);
+  }
+
+  const searchLots = debounce(async function () {
+    const term = lotInput.value.trim();
 
     if (!selectedSettlement || !selectedSettlement.kshCode) {
-      showStatus("Először válassz egy települést a listából.", true);
-      settlementInput.focus();
+      lotList.innerHTML = '<li class="empty">Először válassz egy települést.</li>';
+      lotList.hidden = false;
       return;
     }
-    if (!lot) {
-      showStatus("Add meg a helyrajzi számot.", true);
-      lotInput.focus();
+    if (term.length < 1) {
+      lotList.hidden = true;
       return;
     }
 
-    hideStatus();
-    results.hidden = true;
-    hrszButton.disabled = true;
-    hrszButton.textContent = "Keresés…";
-
+    toggleSpinner("lotNumber", true);
     try {
       const data = await fetchOeny(
         "/parcels/search?kshCode=" +
           encodeURIComponent(selectedSettlement.kshCode) +
           "&lotNumber=" +
-          encodeURIComponent(lot)
+          encodeURIComponent(term)
       );
-      renderResults(toList(data));
+      renderLotSuggestions(toList(data));
     } catch (err) {
+      lotList.hidden = true;
       showStatus("Nem sikerült elérni az OENY HRSZ-keresőt. " + err.message, true);
     } finally {
-      hrszButton.disabled = false;
-      hrszButton.textContent = "Keresés";
+      toggleSpinner("lotNumber", false);
     }
-  }
+  }, 300);
 
   function renderResults(items) {
     resultsList.innerHTML = "";
@@ -319,6 +342,9 @@
         selectedSettlement = null;
         settlementList.hidden = true;
       }
+      if (input === lotInput) {
+        lotList.hidden = true;
+      }
     });
     sync();
   });
@@ -329,16 +355,20 @@
     if (settlementList.children.length && !selectedSettlement) settlementList.hidden = false;
   });
 
-  hrszButton.addEventListener("click", searchParcels);
-  lotInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); searchParcels(); }
+  lotInput.addEventListener("input", searchLots);
+  lotInput.addEventListener("focus", () => {
+    if (lotList.children.length) lotList.hidden = false;
   });
 
-  // Kattintás a listán kívülre -> bezárás.
+  // Kattintás a listákon kívülre -> bezárás.
   document.addEventListener("click", (e) => {
     if (!settlementInput.parentElement.contains(e.target)) {
       settlementList.hidden = true;
       settlementInput.setAttribute("aria-expanded", "false");
+    }
+    if (!lotInput.parentElement.contains(e.target)) {
+      lotList.hidden = true;
+      lotInput.setAttribute("aria-expanded", "false");
     }
   });
 })();

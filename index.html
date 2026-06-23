@@ -54,10 +54,12 @@
             <div class="tab-panel" data-panel="hrsz">
               <div class="input-wrap">
                 <input type="text" id="lotNumber" name="lotNumber" class="text-input"
-                       placeholder="pl.: 47 vagy 1234/A/12" />
+                       placeholder="pl.: 47 vagy 1234/A/12" role="combobox" aria-expanded="false"
+                       aria-autocomplete="list" aria-controls="lot-list" />
+                <span class="input-spinner" data-spinner="lotNumber" hidden></span>
                 <button type="button" class="clear-btn" data-clear="lotNumber" aria-label="Törlés" hidden>&times;</button>
+                <ul class="suggestions" id="lot-list" role="listbox" hidden></ul>
               </div>
-              <button type="button" class="primary-btn" id="hrsz-search">Keresés</button>
             </div>
 
             <!-- Cím fül -->
