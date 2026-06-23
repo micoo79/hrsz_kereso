@@ -103,6 +103,8 @@
   const resultsTitle = document.getElementById("results-title");
   const resultsList = document.getElementById("results-list");
   const statusMessage = document.getElementById("status-message");
+  const mapFrame = document.getElementById("map-frame");
+  const mapPlaceholder = document.getElementById("map-placeholder");
 
   // A kiválasztott település (név + KSH-kód).
   let selectedSettlement = null;
@@ -291,6 +293,9 @@
 
     const titleLine = addressText ? settlementName + ", " + addressText : settlementName;
 
+    // Térkép a találat címére (ha van cím; különben a településre).
+    showMap(addresses[0] ? addresses[0] + ", " + settlementName : settlementName);
+
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML =
@@ -314,6 +319,18 @@
     if (v.indexOf("KUL") === 0 || v.indexOf("KÜL") === 0 || v.indexOf("KULTER") !== -1) return "Külterület";
     if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1) return "Zártkert";
     return String(value);
+  }
+
+  // ---- Térkép ----
+  // A megadott címet/települést jeleníti meg beágyazott Google térképen.
+  function showMap(query) {
+    if (!mapFrame || !query) return;
+    mapFrame.src =
+      "https://maps.google.com/maps?q=" +
+      encodeURIComponent(query + ", Magyarország") +
+      "&z=18&output=embed";
+    mapFrame.hidden = false;
+    if (mapPlaceholder) mapPlaceholder.hidden = true;
   }
 
   // ---- Töltésjelző ----
