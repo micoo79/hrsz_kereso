@@ -329,6 +329,24 @@ body {
   font-weight: 600;
 }
 
+.cad-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.cad-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #b8bdc9;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.cad-chip.on {
+  color: var(--brand);
+  background: var(--brand-100);
+  border-color: transparent;
+}
+
 .result-card-title {
   margin: 0 0 12px;
   font-size: 0.92rem;

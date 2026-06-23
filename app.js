@@ -309,11 +309,6 @@
       detail
     );
 
-    const kshCode =
-      (detail && detail.settlement && detail.settlement.kshCode) ||
-      (selectedSettlement && selectedSettlement.kshCode) ||
-      "";
-
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML =
@@ -323,7 +318,7 @@
         ? '<div class="result-card-footer-items"><span class="result-card-tag">' +
           escapeHtml(fekvesLabel) + "</span></div>"
         : "") +
-      cadastralBlockHtml(kshCode, laymentRaw);
+      cadastralBlockHtml(settlementName, laymentRaw);
     resultsList.appendChild(card);
 
     resultsTitle.textContent = "Találatok (1 db)";
@@ -340,36 +335,79 @@
     return String(value);
   }
 
-  // ---- Térképi alapadatok (földhivatali térkép-metaadatok) ----
-  // A dataset opcionális: ha van terkep-adatok.json a repóban, betöltjük.
-  // Illesztőkulcs a KSH-kód (az OENY is ezt adja).
-  let cadastralByKsh = {};
+  // ---- Térképi alapadatok (saját földhivatali térkép-adathalmaz) ----
+  // A terkep-adatok.json soronként egy település: tömb, fix oszlopindexekkel.
+  // Illesztés a település NEVE szerint (ékezet-érzéketlen), mert a KSH-kódok
+  // formátuma eltér az OENY-étől.
+  const CADI = {
+    nev: 0, ksh: 1,
+    bVet: 2, bMer: 3, bFeld: 4, bFelm: 5, bHely: 6,
+    kVet: 7, kMer: 8, kFeld: 9, kFelm: 10, kHely: 11,
+    kkVet: 12, kkMer: 13, kkFeld: 14, kkFelm: 15, kkHely: 16,
+    at2000: 17, at4000: 18, at5000: 19, at10000: 20,
+  };
+  // Megengedett hibahatárok vetülettípus + méretarány szerint.
+  const EOTR_V = new Set(["EOV", "DAT"]);
+  const EOTR_T = {
+    "1:1000": { hv: "± 0,35 m", fsz: "± 0,45 m" },
+    "1:2000": { hv: "± 0,65 m", fsz: "± 0,90 m" },
+    "1:4000": { hv: "± 1,30 m", fsz: "± 1,80 m" },
+  };
+  const REGI_T = {
+    "1:1000": { hv: "± 0,45 m", fsz: "± 0,60 m" },
+    "1:2000": { hv: "± 0,90 m", fsz: "± 1,20 m" },
+    "1:2880": { hv: "± 1,30 m", fsz: "± 1,70 m" },
+    "1:1440": { hv: "± 1,30 m", fsz: "± 1,70 m" },
+    "1:4000": { hv: "± 1,75 m", fsz: "± 2,40 m" },
+    "1:720": { hv: "—", fsz: "± 3,78 m" },
+  };
+
+  let cadByName = {};
   fetch("terkep-adatok.json")
     .then((r) => (r.ok ? r.json() : null))
-    .then((data) => {
-      if (data) cadastralByKsh = indexCadastral(data);
+    .then((rows) => {
+      if (Array.isArray(rows)) {
+        rows.forEach((row) => {
+          cadByName[normName(row[CADI.nev])] = row;
+        });
+      }
     })
     .catch(() => {});
 
-  function indexCadastral(data) {
-    const list = Array.isArray(data) ? data : data.records || data.items || [];
-    const map = {};
-    list.forEach((rec) => {
-      const ksh = rec.kshCode || rec.ksh || rec.kshKod;
-      if (ksh) map[String(ksh)] = rec;
-    });
-    return map;
+  // Ékezet-érzéketlen név-normalizálás (illesztéshez).
+  function normName(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/á/g, "a")
+      .replace(/é/g, "e")
+      .replace(/í/g, "i")
+      .replace(/[óő]/g, "o")
+      .replace(/[öő]/g, "o")
+      .replace(/[úű]/g, "u")
+      .replace(/[üű]/g, "u")
+      .trim();
   }
 
-  // OENY fekvés (layment) -> földhivatali térkép-kategória.
-  function laymentToCategory(layment) {
-    const v = String(layment || "").toUpperCase();
-    if (v.indexOf("BEL") !== -1) return { key: "belterulet", label: "Belterület" };
-    if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1)
-      return { key: "kulonleges_kulterulet", label: "Zártkert" };
-    if (v.indexOf("KUL") !== -1 || v.indexOf("KÜL") !== -1)
-      return { key: "kulterulet", label: "Külterület" };
-    return { key: "belterulet", label: "Belterület" };
+  // Üres jelölők kezelése.
+  function cadVal(x) {
+    return !x || x === "-" || x === "None" ? "" : x;
+  }
+
+  function cadDeviation(vet, mer) {
+    if (!vet || !mer || mer === "-") return null;
+    return (EOTR_V.has(vet) ? EOTR_T : REGI_T)[mer] || null;
+  }
+
+  // OENY fekvés -> a megfelelő oszlopcsoport.
+  function laymentCols(layment) {
+    const u = String(layment || "").toUpperCase();
+    if (u.indexOf("BEL") !== -1)
+      return { label: "Belterület", vet: CADI.bVet, mer: CADI.bMer, feld: CADI.bFeld, felm: CADI.bFelm, hely: CADI.bHely };
+    if (u.indexOf("ZART") !== -1 || u.indexOf("ZÁRT") !== -1)
+      return { label: "Zártkert", vet: CADI.kkVet, mer: CADI.kkMer, feld: CADI.kkFeld, felm: CADI.kkFelm, hely: CADI.kkHely };
+    if (u.indexOf("KUL") !== -1 || u.indexOf("KÜL") !== -1)
+      return { label: "Külterület", vet: CADI.kVet, mer: CADI.kMer, feld: CADI.kFeld, felm: CADI.kFelm, hely: CADI.kHely };
+    return { label: "Belterület", vet: CADI.bVet, mer: CADI.bMer, feld: CADI.bFeld, felm: CADI.bFelm, hely: CADI.bHely };
   }
 
   function cadRow(k, v) {
@@ -386,13 +424,14 @@
     );
   }
 
-  // A talált fekvésre vonatkozó térképi alapadatok HTML-je (üres, ha nincs adat).
-  function cadastralBlockHtml(kshCode, layment) {
-    const rec = cadastralByKsh[String(kshCode)];
-    if (!rec) return "";
-    const cat = laymentToCategory(layment);
-    const c = (rec.categories && rec.categories[cat.key]) || null;
-    if (!c) return "";
+  // A talált településre + fekvésre vonatkozó térképi alapadatok HTML-je.
+  function cadastralBlockHtml(settlementName, layment) {
+    const row = cadByName[normName(settlementName)];
+    if (!row) return "";
+
+    const cat = laymentCols(layment);
+    const vet = cadVal(row[cat.vet]);
+    const mer = cadVal(row[cat.mer]);
 
     let html =
       '<div class="cadastral">' +
@@ -400,29 +439,41 @@
       escapeHtml(cat.label) +
       "</p>" +
       '<div class="cadastral-grid">' +
-      cadRow("Vetület", c.vetulet) +
-      cadRow("Méretarány", c.meretarany) +
-      cadRow("Feldolgozás", c.feldolgozas) +
-      cadRow("Felmérés éve", c.felmeresEve) +
-      cadRow("Helyesbítés", c.helyesbites) +
+      cadRow("Vetület", vet) +
+      cadRow("Méretarány", mer) +
+      cadRow("Feldolgozás", cadVal(row[cat.feld])) +
+      cadRow("Felmérés éve", cadVal(row[cat.felm])) +
+      cadRow("Helyesbítés", cadVal(row[cat.hely])) +
       "</div>";
 
-    if (c.elteres) {
+    const dev = cadDeviation(vet, mer);
+    if (dev) {
+      const tipus = EOTR_V.has(vet) ? "EOTR" : "Régi";
       html +=
-        '<div class="cad-sub-block"><p class="cad-sub">Megengedett eltérés' +
-        (c.elteres.tipus ? " (" + escapeHtml(c.elteres.tipus) + ")" : "") +
-        "</p>" +
-        cadRow("Határvonal", c.elteres.hatarvonal) +
-        cadRow("Szélességben", c.elteres.szelesseg) +
+        '<div class="cad-sub-block"><p class="cad-sub">Megengedett eltérés (' +
+        tipus +
+        ")</p>" +
+        cadRow("Határvonal", dev.hv) +
+        cadRow("Szélességben", dev.fsz) +
         "</div>";
     }
 
-    if (Array.isArray(rec.atnezeti) && rec.atnezeti.length) {
+    const at = [
+      ["1:2000", row[CADI.at2000]],
+      ["1:4000", row[CADI.at4000]],
+      ["1:5000", row[CADI.at5000]],
+      ["1:10000", row[CADI.at10000]],
+    ];
+    if (at.some((pair) => cadVal(pair[1]))) {
       html +=
-        '<div class="cad-sub-block"><p class="cad-sub">Átnézeti</p>' +
-        '<p class="cad-atnezeti">' +
-        rec.atnezeti.map(escapeHtml).join(" · ") +
-        "</p></div>";
+        '<div class="cad-sub-block"><p class="cad-sub">Átnézeti</p><div class="cad-chips">' +
+        at
+          .map(
+            (pair) =>
+              '<span class="cad-chip' + (cadVal(pair[1]) ? " on" : "") + '">' + pair[0] + "</span>"
+          )
+          .join("") +
+        "</div></div>";
     }
 
     html += "</div>";
