@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HRSZ Kereső – Hello World</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #38bdf8;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+      color: var(--text);
+      padding: 1.5rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.9rem;
+      color: var(--accent);
+    }
+    p { color: var(--muted); line-height: 1.6; }
+    code {
+      background: #0f172a;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 0.9em;
+    }
+    .badge {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.4rem 0.9rem;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid var(--accent);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+    .time { font-size: 0.8rem; margin-top: 1rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>👋 Hello World!</h1>
+    <p>
+      Ez a <strong>HRSZ Kereső</strong> projekt teszt oldala.<br />
+      Ha ezt látod, a GitHub Pages deploy <strong>működik</strong>. 🎉
+    </p>
+    <p>
+      A weboldal forrása a <code>main</code> ág, és minden push után
+      automatikusan frissül.
+    </p>
+    <span class="badge">GitHub Pages · élő</span>
+    <p class="time" id="loaded"></p>
+  </main>
+  <script>
+    document.getElementById("loaded").textContent =
+      "Oldal betöltve: " + new Date().toLocaleString("hu-HU");
+  </script>
+</body>
+</html>
