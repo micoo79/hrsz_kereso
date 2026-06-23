@@ -309,6 +309,11 @@
       detail
     );
 
+    const kshCode =
+      (detail && detail.settlement && detail.settlement.kshCode) ||
+      (selectedSettlement && selectedSettlement.kshCode) ||
+      "";
+
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML =
@@ -317,7 +322,8 @@
       (fekvesLabel
         ? '<div class="result-card-footer-items"><span class="result-card-tag">' +
           escapeHtml(fekvesLabel) + "</span></div>"
-        : "");
+        : "") +
+      cadastralBlockHtml(kshCode, laymentRaw);
     resultsList.appendChild(card);
 
     resultsTitle.textContent = "Találatok (1 db)";
@@ -332,6 +338,95 @@
     if (v.indexOf("KUL") === 0 || v.indexOf("KÜL") === 0 || v.indexOf("KULTER") !== -1) return "Külterület";
     if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1) return "Zártkert";
     return String(value);
+  }
+
+  // ---- Térképi alapadatok (földhivatali térkép-metaadatok) ----
+  // A dataset opcionális: ha van terkep-adatok.json a repóban, betöltjük.
+  // Illesztőkulcs a KSH-kód (az OENY is ezt adja).
+  let cadastralByKsh = {};
+  fetch("terkep-adatok.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data) cadastralByKsh = indexCadastral(data);
+    })
+    .catch(() => {});
+
+  function indexCadastral(data) {
+    const list = Array.isArray(data) ? data : data.records || data.items || [];
+    const map = {};
+    list.forEach((rec) => {
+      const ksh = rec.kshCode || rec.ksh || rec.kshKod;
+      if (ksh) map[String(ksh)] = rec;
+    });
+    return map;
+  }
+
+  // OENY fekvés (layment) -> földhivatali térkép-kategória.
+  function laymentToCategory(layment) {
+    const v = String(layment || "").toUpperCase();
+    if (v.indexOf("BEL") !== -1) return { key: "belterulet", label: "Belterület" };
+    if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1)
+      return { key: "kulonleges_kulterulet", label: "Zártkert" };
+    if (v.indexOf("KUL") !== -1 || v.indexOf("KÜL") !== -1)
+      return { key: "kulterulet", label: "Külterület" };
+    return { key: "belterulet", label: "Belterület" };
+  }
+
+  function cadRow(k, v) {
+    const val = v != null && v !== "" ? String(v) : "—";
+    const empty = val === "—" ? " empty" : "";
+    return (
+      '<div class="cad-row"><span class="cad-k">' +
+      escapeHtml(k) +
+      '</span><span class="cad-v' +
+      empty +
+      '">' +
+      escapeHtml(val) +
+      "</span></div>"
+    );
+  }
+
+  // A talált fekvésre vonatkozó térképi alapadatok HTML-je (üres, ha nincs adat).
+  function cadastralBlockHtml(kshCode, layment) {
+    const rec = cadastralByKsh[String(kshCode)];
+    if (!rec) return "";
+    const cat = laymentToCategory(layment);
+    const c = (rec.categories && rec.categories[cat.key]) || null;
+    if (!c) return "";
+
+    let html =
+      '<div class="cadastral">' +
+      '<p class="cadastral-title">Térképi alapadatok · ' +
+      escapeHtml(cat.label) +
+      "</p>" +
+      '<div class="cadastral-grid">' +
+      cadRow("Vetület", c.vetulet) +
+      cadRow("Méretarány", c.meretarany) +
+      cadRow("Feldolgozás", c.feldolgozas) +
+      cadRow("Felmérés éve", c.felmeresEve) +
+      cadRow("Helyesbítés", c.helyesbites) +
+      "</div>";
+
+    if (c.elteres) {
+      html +=
+        '<div class="cad-sub-block"><p class="cad-sub">Megengedett eltérés' +
+        (c.elteres.tipus ? " (" + escapeHtml(c.elteres.tipus) + ")" : "") +
+        "</p>" +
+        cadRow("Határvonal", c.elteres.hatarvonal) +
+        cadRow("Szélességben", c.elteres.szelesseg) +
+        "</div>";
+    }
+
+    if (Array.isArray(rec.atnezeti) && rec.atnezeti.length) {
+      html +=
+        '<div class="cad-sub-block"><p class="cad-sub">Átnézeti</p>' +
+        '<p class="cad-atnezeti">' +
+        rec.atnezeti.map(escapeHtml).join(" · ") +
+        "</p></div>";
+    }
+
+    html += "</div>";
+    return html;
   }
 
   // ---- Térkép / Utcakép ----

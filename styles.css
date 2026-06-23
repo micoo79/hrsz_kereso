@@ -278,6 +278,57 @@ body {
 
 .result-card + .result-card { margin-top: 12px; }
 
+/* Térképi alapadatok blokk */
+.cadastral {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.cadastral-title {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand);
+}
+
+.cadastral-grid { display: flex; flex-direction: column; gap: 2px; }
+
+.cad-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.cad-k { color: var(--muted); }
+.cad-v { font-weight: 600; text-align: right; }
+.cad-v.empty { color: #b8bdc9; font-weight: 400; }
+
+.cad-sub-block {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.cad-sub {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.cad-atnezeti {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .result-card-title {
   margin: 0 0 12px;
   font-size: 0.92rem;
