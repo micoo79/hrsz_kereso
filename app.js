@@ -17,16 +17,15 @@
   const OENY_BASE = "https://www.oeny.hu/hk-api";
 
   // Ha beállítasz saját Cloudflare Workert (lásd cloudflare-worker.js + README),
-  // írd ide az URL-jét, pl.: "https://hrsz-proxy.SAJAT.workers.dev/?url=".
-  // Üresen hagyva a nyilvános allorigins proxy a tartalék.
-  const PROXY_BASE = "";
+  // írd ide az URL-jét. Üresen hagyva a nyilvános proxyk a tartalék.
+  const PROXY_BASE = "https://hrszkereso.micoo79.workers.dev/?url=";
 
-  // A próbálkozási sorrend: közvetlen -> saját proxy (ha van) -> nyilvános proxyk.
-  // Több nyilvános proxy is szerepel, mert ezek egyenként megbízhatatlanok lehetnek;
-  // ha az egyik nem elérhető, a kód automatikusan a következőt próbálja.
+  // A próbálkozási sorrend: saját proxy (ha van) -> közvetlen -> nyilvános proxyk.
+  // Több nyilvános proxy is szerepel tartaléknak, mert ezek egyenként
+  // megbízhatatlanok lehetnek; ha az egyik nem elérhető, jön a következő.
   const PROXY_CHAIN = [
-    (url) => url, // közvetlen (akkor működik, ha az OENY enged CORS-t)
     PROXY_BASE ? (url) => PROXY_BASE + encodeURIComponent(url) : null,
+    (url) => url, // közvetlen (akkor működik, ha az OENY enged CORS-t)
     (url) => "https://corsproxy.io/?url=" + encodeURIComponent(url),
     (url) => "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
     (url) => "https://thingproxy.freeboard.io/fetch/" + url,
