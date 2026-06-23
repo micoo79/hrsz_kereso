@@ -290,19 +290,16 @@
     }
 
     const titleLine = addressText ? settlementName + ", " + addressText : settlementName;
-    const link = buildPropertySheetLink(settlementName, laymentRaw, hrsz, addresses[0] || "");
 
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML =
       '<p class="result-card-address">' + escapeHtml(titleLine) + "</p>" +
       '<p class="result-card-hrsz">HRSZ: ' + escapeHtml(hrsz) + "</p>" +
-      '<div class="result-card-footer-items">' +
-        (fekvesLabel ? '<span class="result-card-tag">' + escapeHtml(fekvesLabel) + "</span>" : "<span></span>") +
-        '<a class="property-sheet-navigation-link" href="' + link + '" target="_blank" rel="noopener">' +
-          'Tulajdoni lap <span class="chevron" aria-hidden="true">›</span>' +
-        "</a>" +
-      "</div>";
+      (fekvesLabel
+        ? '<div class="result-card-footer-items"><span class="result-card-tag">' +
+          escapeHtml(fekvesLabel) + "</span></div>"
+        : "");
     resultsList.appendChild(card);
 
     resultsTitle.textContent = "Találatok (1 db)";
@@ -317,24 +314,6 @@
     if (v.indexOf("KUL") === 0 || v.indexOf("KÜL") === 0 || v.indexOf("KULTER") !== -1) return "Külterület";
     if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1) return "Zártkert";
     return String(value);
-  }
-
-  // Hivatalos tulajdoni lap deep-link (magyarorszag.hu E-ingatlan).
-  function buildPropertySheetLink(settlementName, fekvesRaw, hrsz, address) {
-    const fekvesCode = (function () {
-      const v = String(fekvesRaw || "").toUpperCase();
-      if (v.indexOf("BEL") !== -1) return "BELTERULET";
-      if (v.indexOf("KUL") !== -1 || v.indexOf("KÜL") !== -1) return "KULTERULET";
-      if (v.indexOf("ZART") !== -1 || v.indexOf("ZÁRT") !== -1) return "ZARTKERT";
-      return "";
-    })();
-
-    const params = new URLSearchParams();
-    params.set("hrsz.telepules", settlementName);
-    if (fekvesCode) params.set("hrsz.fekves", fekvesCode);
-    params.set("hrsz.hrszFold", hrsz);
-    if (address) params.set("cim", address);
-    return "https://magyarorszag.hu/eing_new?" + params.toString();
   }
 
   // ---- Töltésjelző ----
