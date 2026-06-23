@@ -29,6 +29,9 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Ha a Pages még nincs engedélyezve, a workflow magától bekapcsolja.
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
