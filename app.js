@@ -19,7 +19,7 @@
   // Google Maps JavaScript API kulcs. Ha meg van adva, interaktív térkép
   // jelenik meg HÚZHATÓ sárga emberkével (Pegman) és Street View-val.
   // Üresen hagyva a kulcs nélküli, beágyazott térkép (Térkép/Utcakép) marad.
-  const MAPS_API_KEY = "";
+  const MAPS_API_KEY = "AIzaSyA5uLO0P95p8W9ASEWASG3A9m_6y5kgNK4";
 
   // Ha beállítasz saját Cloudflare Workert (lásd cloudflare-worker.js + README),
   // írd ide az URL-jét. Üresen hagyva a nyilvános proxyk a tartalék.
