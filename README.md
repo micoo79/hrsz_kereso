@@ -25,19 +25,36 @@ A repó **Settings → Pages → Build and deployment** részén:
 
 - `index.html` – a kereső belépő oldala a bal oldali kereső panellel
 - `styles.css` – az oldal stílusai (indigókék arculat)
-- `app.js` – a kereső interakciói (fülváltás, mezőtörlés)
+- `app.js` – a kereső logikája és az OENY-lekérdezés
+- `cloudflare-worker.js` – opcionális CORS-proxy az OENY-hez (lásd lent)
 - `.nojekyll` – kikapcsolja a Jekyll feldolgozást (statikus oldalként szolgáljuk ki)
 
-## 🔎 Funkció
+## 🔎 Funkció és adatforrás
 
-A bal oldali **kereső panel** az OENY Helyrajziszám-kereső felépítését követi:
+A kereső az **OENY** (`www.oeny.hu/hk-api`) adatait használja:
 
-- **Település** mező
-- **Keresés módja** fülek: *Cím* / *Helyrajzi szám*
-- találati kártya (cím, HRSZ, bel-/külterület címke, „Tulajdoni lap" link)
+1. **Település** mező → `hk-api/settlements/search?searchString=…`
+   (autocomplete; a kiválasztott településhez tartozik a KSH-kód)
+2. **Helyrajzi szám** mező → `hk-api/parcels/search?kshCode=…&lotNumber=…`
+3. Találati kártya: cím, HRSZ, bel-/külterület címke és hivatalos
+   **„Tulajdoni lap"** link (`magyarorszag.hu`)
 
-> Jelenleg a kereső a felületet (UI) valósítja meg. Az élő adatlekérdezés
-> (település- és HRSZ-keresés tényleges adatforrásból) a következő lépés.
+## 🔌 CORS-proxy (fontos)
+
+A böngésző a GitHub Pages oldalról biztonsági okból (CORS) nem feltétlenül
+hívhatja közvetlenül az `oeny.hu`-t. Az `app.js` ezért így jár el:
+
+1. először **közvetlenül** próbálja az OENY-t,
+2. ha a böngésző blokkolja, automatikusan egy **nyilvános proxyn**
+   (`allorigins`) keresztül kéri le az adatot.
+
+A nyilvános proxy ingyenes, de lassú/megbízhatatlan lehet. Stabil működéshez
+telepítsd a saját, ingyenes **Cloudflare Workert** (lásd `cloudflare-worker.js`),
+majd az `app.js` tetején állítsd be:
+
+```js
+const PROXY_BASE = "https://hrsz-proxy.SAJAT.workers.dev/?url=";
+```
 
 ## 🛠️ Fejlesztés
 

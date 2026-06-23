@@ -178,8 +178,105 @@ body {
 
 .tab-panel { margin-top: 12px; }
 
+/* Autocomplete lista */
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.suggestions li {
+  padding: 9px 10px;
+  font-size: 0.9rem;
+  border-radius: 7px;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.suggestions li small { display: block; color: var(--muted); font-size: 0.8rem; }
+
+.suggestions li:hover,
+.suggestions li.active {
+  background: var(--brand-50);
+  color: var(--brand);
+}
+
+.suggestions li.empty {
+  cursor: default;
+  color: var(--muted);
+}
+
+.suggestions li.empty:hover { background: transparent; color: var(--muted); }
+
+/* Töltésjelző */
+.input-spinner {
+  position: absolute;
+  right: 38px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--brand-100);
+  border-top-color: var(--brand-strong);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Elsődleges gomb */
+.primary-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--white);
+  background: var(--brand);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.primary-btn:hover { background: var(--brand-strong); }
+.primary-btn:disabled { opacity: 0.55; cursor: default; }
+
+.field-hint {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.empty-message {
+  margin-top: 20px;
+  padding: 14px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+
+.empty-message.is-error {
+  color: #8a1f1f;
+  background: #fdecec;
+}
+
 /* Találatok */
 .result-card-wrapper { margin-top: 28px; }
+
+.result-card + .result-card { margin-top: 12px; }
 
 .result-card-title {
   margin: 0 0 12px;
@@ -246,9 +343,13 @@ body {
 
 /* Lábléc */
 .app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 14px 20px;
   border-top: 1px solid var(--border);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 

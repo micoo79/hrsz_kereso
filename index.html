@@ -4,14 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Helyrajziszám-kereső</title>
-  <meta name="description" content="Helyrajziszám-kereső: ingatlanok helyrajzi számának (HRSZ) keresése település és cím vagy helyrajzi szám alapján." />
+  <meta name="description" content="Helyrajziszám-kereső: magyar ingatlanok helyrajzi számának keresése település és HRSZ alapján, az OENY adatai alapján." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="layout">
     <!-- ====== BAL OLDALI KERESŐ PANEL ====== -->
     <aside class="search-container">
-      <!-- Fejléc -->
       <header class="app-header">
         <div class="brand">
           <span class="brand-logo" aria-hidden="true">
@@ -24,26 +23,22 @@
       </header>
 
       <div class="search-form-container">
-        <!-- Bevezető -->
         <p class="parcel-info">
           A Helyrajziszám-keresővel könnyedén megtalálhatja bármely magyarországi
           ingatlan helyrajzi számát (HRSZ) és telekhatárait térképen.
         </p>
 
-        <!-- Kereső űrlap -->
         <form class="search-form" autocomplete="off" novalidate>
           <!-- Település -->
           <div class="field">
             <label class="form-label" for="settlement">Település</label>
             <div class="input-wrap">
-              <input
-                type="text"
-                id="settlement"
-                name="settlement"
-                class="text-input"
-                placeholder="pl.: Szeged"
-              />
+              <input type="text" id="settlement" name="settlement" class="text-input"
+                     placeholder="pl.: Szeged" role="combobox" aria-expanded="false"
+                     aria-autocomplete="list" aria-controls="settlement-list" />
+              <span class="input-spinner" data-spinner="settlement" hidden></span>
               <button type="button" class="clear-btn" data-clear="settlement" aria-label="Törlés" hidden>&times;</button>
+              <ul class="suggestions" id="settlement-list" role="listbox" hidden></ul>
             </div>
           </div>
 
@@ -58,62 +53,43 @@
             <!-- Helyrajzi szám fül -->
             <div class="tab-panel" data-panel="hrsz">
               <div class="input-wrap">
-                <input
-                  type="text"
-                  id="lotNumber"
-                  name="lotNumber"
-                  class="text-input"
-                  placeholder="pl.: 1234/A/12"
-                />
+                <input type="text" id="lotNumber" name="lotNumber" class="text-input"
+                       placeholder="pl.: 47 vagy 1234/A/12" />
                 <button type="button" class="clear-btn" data-clear="lotNumber" aria-label="Törlés" hidden>&times;</button>
               </div>
+              <button type="button" class="primary-btn" id="hrsz-search">Keresés</button>
             </div>
 
             <!-- Cím fül -->
             <div class="tab-panel" data-panel="cim" hidden>
               <div class="input-wrap">
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  class="text-input"
-                  placeholder="pl.: Arany János út 22"
-                />
-                <button type="button" class="clear-btn" data-clear="address" aria-label="Törlés" hidden>&times;</button>
+                <input type="text" id="address" name="address" class="text-input"
+                       placeholder="pl.: Arany János út 22" disabled />
               </div>
+              <p class="field-hint">
+                A cím szerinti kereséshez az OENY külön végpontja szükséges –
+                ez a következő lépésben köthető be.
+              </p>
             </div>
           </div>
         </form>
 
-        <!-- Találatok -->
-        <section class="result-card-wrapper">
-          <p class="result-card-title">Találatok (1 db)</p>
-
-          <article class="result-card">
-            <p class="result-card-address">Magyarnándor, Arany János út 22</p>
-            <p class="result-card-hrsz">HRSZ: 467</p>
-            <div class="result-card-footer-items">
-              <span class="result-card-tag">Belterület</span>
-              <a
-                class="property-sheet-navigation-link"
-                href="https://magyarorszag.hu/eing_new?hrsz.telepules=Magyarn%C3%A1ndor&hrsz.fekves=BELTERULET&hrsz.hrszFold=467&cim=Arany%20J%C3%A1nos%20%C3%BAt%2022"
-                target="_blank"
-                rel="noopener"
-              >
-                Tulajdoni lap <span class="chevron" aria-hidden="true">›</span>
-              </a>
-            </div>
-          </article>
+        <!-- Találatok / üzenetek -->
+        <section class="result-card-wrapper" id="results" hidden>
+          <p class="result-card-title" id="results-title">Találatok</p>
+          <div id="results-list"></div>
         </section>
+
+        <p class="empty-message" id="status-message" hidden></p>
       </div>
 
-      <!-- Lábléc -->
       <footer class="app-footer">
         <span class="footer-version">HRSZ Kereső</span>
+        <span class="footer-attrib">Adatforrás: OENY</span>
       </footer>
     </aside>
 
-    <!-- ====== JOBB OLDAL: térkép helye (később) ====== -->
+    <!-- ====== JOBB OLDAL: térkép helye ====== -->
     <main class="map-container" aria-label="Térkép">
       <div class="map-placeholder">
         <svg viewBox="0 0 24 24" width="40" height="40" fill="none" aria-hidden="true">
