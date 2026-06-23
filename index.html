@@ -23,11 +23,6 @@
       </header>
 
       <div class="search-form-container">
-        <p class="parcel-info">
-          A Helyrajziszám-keresővel könnyedén megtalálhatja bármely magyarországi
-          ingatlan helyrajzi számát (HRSZ) és telekhatárait térképen.
-        </p>
-
         <form class="search-form" autocomplete="off" novalidate>
           <!-- Település -->
           <div class="field">
@@ -42,37 +37,16 @@
             </div>
           </div>
 
-          <!-- Keresés módja -->
+          <!-- Helyrajzi szám -->
           <div class="field">
-            <span class="form-label">Keresés módja</span>
-            <div class="tabs" role="tablist">
-              <!-- A "Cím" fül egyelőre rejtve, amíg a cím szerinti keresés nem működik. -->
-              <button type="button" class="tab" role="tab" data-tab="cim" aria-selected="false" hidden>Cím</button>
-              <button type="button" class="tab is-active" role="tab" data-tab="hrsz" aria-selected="true">Helyrajzi szám</button>
-            </div>
-
-            <!-- Helyrajzi szám fül -->
-            <div class="tab-panel" data-panel="hrsz">
-              <div class="input-wrap">
-                <input type="text" id="lotNumber" name="lotNumber" class="text-input"
-                       placeholder="pl.: 47 vagy 1234/A/12" role="combobox" aria-expanded="false"
-                       aria-autocomplete="list" aria-controls="lot-list" />
-                <span class="input-spinner" data-spinner="lotNumber" hidden></span>
-                <button type="button" class="clear-btn" data-clear="lotNumber" aria-label="Törlés" hidden>&times;</button>
-                <ul class="suggestions" id="lot-list" role="listbox" hidden></ul>
-              </div>
-            </div>
-
-            <!-- Cím fül -->
-            <div class="tab-panel" data-panel="cim" hidden>
-              <div class="input-wrap">
-                <input type="text" id="address" name="address" class="text-input"
-                       placeholder="pl.: Arany János út 22" disabled />
-              </div>
-              <p class="field-hint">
-                A cím szerinti kereséshez az OENY külön végpontja szükséges –
-                ez a következő lépésben köthető be.
-              </p>
+            <label class="form-label" for="lotNumber">Helyrajzi szám</label>
+            <div class="input-wrap">
+              <input type="text" id="lotNumber" name="lotNumber" class="text-input"
+                     placeholder="pl.: 47 vagy 1234/A/12" role="combobox" aria-expanded="false"
+                     aria-autocomplete="list" aria-controls="lot-list" />
+              <span class="input-spinner" data-spinner="lotNumber" hidden></span>
+              <button type="button" class="clear-btn" data-clear="lotNumber" aria-label="Törlés" hidden>&times;</button>
+              <ul class="suggestions" id="lot-list" role="listbox" hidden></ul>
             </div>
           </div>
         </form>

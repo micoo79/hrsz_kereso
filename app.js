@@ -312,12 +312,11 @@
     const card = document.createElement("article");
     card.className = "result-card";
     card.innerHTML =
-      '<p class="result-card-address">' + escapeHtml(titleLine) + "</p>" +
-      '<p class="result-card-hrsz">HRSZ: ' + escapeHtml(hrsz) + "</p>" +
-      (fekvesLabel
-        ? '<div class="result-card-footer-items"><span class="result-card-tag">' +
-          escapeHtml(fekvesLabel) + "</span></div>"
-        : "") +
+      '<div class="result-card-head">' +
+        '<span class="rc-place">' + escapeHtml(titleLine) + "</span>" +
+        '<span class="rc-hrsz">HRSZ: ' + escapeHtml(hrsz) + "</span>" +
+        (fekvesLabel ? '<span class="result-card-tag">' + escapeHtml(fekvesLabel) + "</span>" : "") +
+      "</div>" +
       cadastralBlockHtml(settlementName, laymentRaw);
     resultsList.appendChild(card);
 
@@ -663,23 +662,6 @@
     const spinner = document.querySelector('[data-spinner="' + name + '"]');
     if (spinner) spinner.hidden = !on;
   }
-
-  // ---- Fülváltás ----
-  const tabs = document.querySelectorAll(".tab");
-  const panels = document.querySelectorAll(".tab-panel");
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const target = tab.dataset.tab;
-      tabs.forEach((t) => {
-        const active = t === tab;
-        t.classList.toggle("is-active", active);
-        t.setAttribute("aria-selected", active ? "true" : "false");
-      });
-      panels.forEach((panel) => {
-        panel.hidden = panel.dataset.panel !== target;
-      });
-    });
-  });
 
   // ---- Törlés (×) gombok ----
   document.querySelectorAll(".clear-btn").forEach((btn) => {

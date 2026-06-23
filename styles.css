@@ -278,6 +278,24 @@ body {
 
 .result-card + .result-card { margin-top: 12px; }
 
+/* Találat fejléce egy sorban: település + HRSZ + fekvés */
+.result-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.rc-place {
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+.rc-hrsz {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
 /* Térképi alapadatok blokk */
 .cadastral {
   margin-top: 14px;
