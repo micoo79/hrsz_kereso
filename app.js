@@ -573,6 +573,7 @@
   let gmarker = null;
   let gmapsLoading = null;
   let parcelPolygons = [];
+  let parcelBoundaryMarkers = [];
 
   function ensureGoogleMaps() {
     if (window.google && window.google.maps) return Promise.resolve();
@@ -626,9 +627,11 @@
 
   // A telekhatárt rajzolja ki a bounding-box outline poligonjából (EOV -> WGS84).
   function drawParcelOutline(detail) {
-    // Korábbi határvonal törlése.
+    // Korábbi határvonal + pontok törlése.
     parcelPolygons.forEach((p) => p.setMap(null));
     parcelPolygons = [];
+    parcelBoundaryMarkers.forEach((m) => m.setMap(null));
+    parcelBoundaryMarkers = [];
 
     const outline = detail && detail.outline;
     if (!outline || typeof proj4 === "undefined") return;
@@ -639,6 +642,7 @@
       outline.type === "MultiPolygon" ? outline.coordinates : [outline.coordinates];
 
     const bounds = new google.maps.LatLngBounds();
+    const boundaryRings = [];
 
     polygons.forEach((rings) => {
       const paths = rings.map((ring) =>
@@ -659,10 +663,63 @@
         map: gmap,
       });
       parcelPolygons.push(poly);
+      paths.forEach((ring) => boundaryRings.push(ring));
+    });
+
+    // A telekhatárt apró pontokkal is kirakjuk – ezek a Street View-ban is
+    // látszanak (a Polygon ott nem jelenik meg, csak a markerek).
+    const dots = boundaryDots(boundaryRings, 3, 220);
+    const dotIcon = {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 3.2,
+      fillColor: "#FF3B30",
+      fillOpacity: 1,
+      strokeColor: "#ffffff",
+      strokeWeight: 0.8,
+    };
+    dots.forEach((d) => {
+      parcelBoundaryMarkers.push(
+        new google.maps.Marker({ position: d, map: gmap, icon: dotIcon, clickable: false, zIndex: 5 })
+      );
     });
 
     // A térképet a telekhatárhoz igazítjuk.
     if (!bounds.isEmpty()) gmap.fitBounds(bounds);
+  }
+
+  // Méteres távolság két WGS84 pont között (haversine).
+  function metersBetween(a, b) {
+    const R = 6371000;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+    const la1 = (a.lat * Math.PI) / 180;
+    const la2 = (b.lat * Math.PI) / 180;
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  // A határvonal mentén ~spacing méterenként pontokat generál (max maxDots db).
+  function boundaryDots(rings, spacing, maxDots) {
+    const pts = [];
+    rings.forEach((ring) => {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const a = ring[i];
+        const b = ring[i + 1];
+        const n = Math.max(1, Math.round(metersBetween(a, b) / spacing));
+        for (let j = 0; j < n; j++) {
+          const t = j / n;
+          pts.push({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
+        }
+      }
+    });
+    // Ha túl sok pont lenne, egyenletesen ritkítunk.
+    if (pts.length > maxDots) {
+      const step = Math.ceil(pts.length / maxDots);
+      return pts.filter((_, i) => i % step === 0);
+    }
+    return pts;
   }
 
   // ---- Töltésjelző ----
