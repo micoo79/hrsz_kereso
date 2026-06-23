@@ -16,6 +16,11 @@
   // ---- Konfiguráció ----
   const OENY_BASE = "https://www.oeny.hu/hk-api";
 
+  // Google Maps JavaScript API kulcs. Ha meg van adva, interaktív térkép
+  // jelenik meg HÚZHATÓ sárga emberkével (Pegman) és Street View-val.
+  // Üresen hagyva a kulcs nélküli, beágyazott térkép (Térkép/Utcakép) marad.
+  const MAPS_API_KEY = "";
+
   // Ha beállítasz saját Cloudflare Workert (lásd cloudflare-worker.js + README),
   // írd ide az URL-jét. Üresen hagyva a nyilvános proxyk a tartalék.
   const PROXY_BASE = "https://hrszkereso.micoo79.workers.dev/?url=";
@@ -107,6 +112,7 @@
   const mapPlaceholder = document.getElementById("map-placeholder");
   const mapToggle = document.getElementById("map-toggle");
   const svButton = document.getElementById("sv-btn");
+  const mapCanvas = document.getElementById("gmap");
 
   // A kiválasztott település (név + KSH-kód).
   let selectedSettlement = null;
@@ -393,8 +399,68 @@
   function showMap(query, latlng) {
     mapQuery = query || null;
     mapLatLng = latlng || null;
+
+    // Ha van API-kulcs és pontos koordináta: interaktív térkép húzható Pegmannel.
+    if (MAPS_API_KEY && mapLatLng) {
+      showInteractiveMap(mapLatLng);
+      return;
+    }
+
     if (!mapLatLng) mapMode = "map"; // utcakép koordináta nélkül nem megy
     renderMapFrame();
+  }
+
+  // ---- Interaktív Google térkép (API-kulccsal, húzható Pegman) ----
+  let gmap = null;
+  let gmarker = null;
+  let gmapsLoading = null;
+
+  function ensureGoogleMaps() {
+    if (window.google && window.google.maps) return Promise.resolve();
+    if (gmapsLoading) return gmapsLoading;
+    gmapsLoading = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src =
+        "https://maps.googleapis.com/maps/api/js?key=" + encodeURIComponent(MAPS_API_KEY);
+      s.async = true;
+      s.defer = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error("A Google Maps API nem töltődött be."));
+      document.head.appendChild(s);
+    });
+    return gmapsLoading;
+  }
+
+  async function showInteractiveMap(latlngStr) {
+    const parts = latlngStr.split(",");
+    const pos = { lat: parseFloat(parts[0]), lng: parseFloat(parts[1]) };
+
+    try {
+      await ensureGoogleMaps();
+    } catch (e) {
+      // Ha az API nem tölt be (pl. hibás kulcs), essünk vissza a beágyazott térképre.
+      renderMapFrame();
+      return;
+    }
+
+    if (mapToggle) mapToggle.hidden = true; // a JS-térképnek saját vezérlői vannak
+    if (mapFrame) mapFrame.hidden = true;
+    if (mapPlaceholder) mapPlaceholder.hidden = true;
+    if (mapCanvas) mapCanvas.hidden = false;
+
+    if (!gmap) {
+      gmap = new google.maps.Map(mapCanvas, {
+        center: pos,
+        zoom: 18,
+        streetViewControl: true, // a húzható sárga emberke (Pegman)
+        mapTypeControl: true,
+        fullscreenControl: true,
+      });
+      gmarker = new google.maps.Marker({ map: gmap, position: pos });
+    } else {
+      gmap.setCenter(pos);
+      gmarker.setPosition(pos);
+    }
   }
 
   // ---- Töltésjelző ----
