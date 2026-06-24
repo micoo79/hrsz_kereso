@@ -113,6 +113,7 @@
   const mapToggle = document.getElementById("map-toggle");
   const svButton = document.getElementById("sv-btn");
   const mapCanvas = document.getElementById("gmap");
+  const cadastralToggle = document.getElementById("cadastral-toggle");
 
   // A kiválasztott település (név + KSH-kód).
   let selectedSettlement = null;
@@ -617,12 +618,54 @@
         fullscreenControl: true,
       });
       gmarker = new google.maps.Marker({ map: gmap, position: pos });
+      setupCadastralLayer();
     } else {
       gmap.setCenter(pos);
       gmarker.setPosition(pos);
     }
 
+    if (cadastralToggle) cadastralToggle.hidden = false;
     drawParcelOutline(detail);
+  }
+
+  // ---- Telekhatár-réteg (OENY GeoServer WMS, hrsz:foldreszlet) ----
+  // A csempék <img>-ként töltődnek (nem kell CORS), EPSG:3857-ben kérve,
+  // hogy illeszkedjenek a Google-térképhez.
+  let cadastralWms = null;
+  let cadastralVisible = true;
+
+  function setupCadastralLayer() {
+    cadastralWms = new google.maps.ImageMapType({
+      name: "Telekhatár",
+      tileSize: new google.maps.Size(256, 256),
+      getTileUrl: function (coord, zoom) {
+        const ext = 20037508.342789244; // Web Mercator fél-kiterjedés (m)
+        const res = (2 * ext) / (256 * (1 << zoom));
+        const minX = -ext + coord.x * 256 * res;
+        const maxX = minX + 256 * res;
+        const maxY = ext - coord.y * 256 * res;
+        const minY = maxY - 256 * res;
+        return (
+          "https://www.oeny.hu/hk-geoserver/hrsz/wms?SERVICE=WMS&VERSION=1.1.1" +
+          "&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true" +
+          "&LAYERS=hrsz:foldreszlet&STYLES=&WIDTH=256&HEIGHT=256&SRS=EPSG:3857" +
+          "&BBOX=" + [minX, minY, maxX, maxY].join(",")
+        );
+      },
+    });
+    if (cadastralVisible) gmap.overlayMapTypes.push(cadastralWms);
+  }
+
+  function toggleCadastralLayer() {
+    if (!gmap || !cadastralWms) return;
+    cadastralVisible = !cadastralVisible;
+    if (cadastralVisible) {
+      gmap.overlayMapTypes.push(cadastralWms);
+    } else {
+      const idx = gmap.overlayMapTypes.getArray().indexOf(cadastralWms);
+      if (idx >= 0) gmap.overlayMapTypes.removeAt(idx);
+    }
+    if (cadastralToggle) cadastralToggle.classList.toggle("is-active", cadastralVisible);
   }
 
   // A telekhatárt rajzolja ki a bounding-box outline poligonjából (EOV -> WGS84).
@@ -756,6 +799,8 @@
   settlementInput.addEventListener("focus", () => {
     if (settlementList.children.length && !selectedSettlement) settlementList.hidden = false;
   });
+
+  if (cadastralToggle) cadastralToggle.addEventListener("click", toggleCadastralLayer);
 
   lotInput.addEventListener("input", searchLots);
   lotInput.addEventListener("focus", () => {
