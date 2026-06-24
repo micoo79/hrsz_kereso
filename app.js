@@ -39,10 +39,14 @@
   // Az a proxy-index, amelyik utoljára működött (gyorsítótár).
   let workingProxy = null;
 
+  // Sikeres válaszok gyorsítótára (kevesebb ismételt kérés az OENY felé).
+  const oenyCache = new Map();
+
   // ---- Segédfüggvények ----
 
   // Lekér egy OENY-útvonalat, végigpróbálva a proxy-láncot.
   async function fetchOeny(path) {
+    if (oenyCache.has(path)) return oenyCache.get(path);
     const fullUrl = OENY_BASE + path;
     const order =
       workingProxy === null
@@ -58,6 +62,7 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         workingProxy = i; // jegyezzük meg a működő utat
+        oenyCache.set(path, data);
         return data;
       } catch (err) {
         errors.push({ i, msg: err.message });
@@ -167,7 +172,7 @@
   const searchSettlements = debounce(async function () {
     const term = settlementInput.value.trim();
     selectedSettlement = null;
-    if (term.length < 2) {
+    if (term.length < 3) {
       settlementList.hidden = true;
       return;
     }
@@ -187,7 +192,7 @@
     } finally {
       toggleSpinner("settlement", false);
     }
-  }, 300);
+  }, 500);
 
   // ---- Helyrajzi szám autocomplete ----
   function renderLotSuggestions(items) {
@@ -263,7 +268,7 @@
     } finally {
       toggleSpinner("lotNumber", false);
     }
-  }, 300);
+  }, 450);
 
   // A térkép-réteghez később felhasználható geometria (EOV / EPSG:23700).
   let lastParcelGeometry = null;
@@ -640,6 +645,9 @@
       name: "Telekhatár",
       tileSize: new google.maps.Size(256, 256),
       getTileUrl: function (coord, zoom) {
+        // Csak közeli zoomnál töltünk csempét – így a térkép-mozgatás nem
+        // terheli feleslegesen az OENY szerverét (telekhatár csak ott értelmes).
+        if (zoom < 16) return null;
         const ext = 20037508.342789244; // Web Mercator fél-kiterjedés (m)
         const res = (2 * ext) / (256 * (1 << zoom));
         const minX = -ext + coord.x * 256 * res;
