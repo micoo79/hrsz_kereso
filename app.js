@@ -49,7 +49,7 @@
         ? PROXY_CHAIN.map((_, i) => i)
         : [workingProxy, ...PROXY_CHAIN.map((_, i) => i).filter((i) => i !== workingProxy)];
 
-    let lastError;
+    const errors = [];
     for (const i of order) {
       try {
         const res = await fetch(PROXY_CHAIN[i](fullUrl), {
@@ -60,10 +60,12 @@
         workingProxy = i; // jegyezzük meg a működő utat
         return data;
       } catch (err) {
-        lastError = err;
+        errors.push({ i, msg: err.message });
       }
     }
-    throw lastError || new Error("Ismeretlen hiba");
+    // A diagnosztikához az elsődleges (Worker, index 0) hibáját preferáljuk.
+    const primary = errors.find((e) => e.i === 0);
+    throw new Error((primary || errors[0] || { msg: "ismeretlen hiba" }).msg);
   }
 
   // Az első létező, nem üres mezőt adja vissza a megadott kulcsok közül.
@@ -178,9 +180,8 @@
     } catch (err) {
       settlementList.hidden = true;
       showStatus(
-        "Nem sikerült elérni az OENY település-keresőt (" + err.message + "). " +
-          "A nyilvános proxyk épp nem elérhetők – állíts be saját Cloudflare Workert " +
-          "(lásd cloudflare-worker.js).",
+        "Nem sikerült elérni az OENY-t a proxyn keresztül (" + err.message + "). " +
+          "Ellenőrizd, hogy a Cloudflare Worker fut-e, vagy próbáld újra.",
         true
       );
     } finally {
