@@ -25,6 +25,10 @@
   // írd ide az URL-jét. Üresen hagyva a nyilvános proxyk a tartalék.
   const PROXY_BASE = "https://hrszkereso.micoo79.workers.dev/?url=";
 
+  // A telekhatár WMS-réteg az oeny.hu-t a böngészőből KÖZVETLENÜL terheli
+  // (sok csempe-kérés). Egyelőre kikapcsolva, hogy ne váltson ki tiltást.
+  const ENABLE_WMS = false;
+
   // A próbálkozási sorrend: saját proxy (ha van) -> közvetlen -> nyilvános proxyk.
   // Több nyilvános proxy is szerepel tartaléknak, mert ezek egyenként
   // megbízhatatlanok lehetnek; ha az egyik nem elérhető, jön a következő.
@@ -624,13 +628,13 @@
         fullscreenControl: true,
       });
       gmarker = new google.maps.Marker({ map: gmap, position: pos });
-      setupCadastralLayer();
+      if (ENABLE_WMS) setupCadastralLayer();
     } else {
       gmap.setCenter(pos);
       gmarker.setPosition(pos);
     }
 
-    if (cadastralToggle) cadastralToggle.hidden = false;
+    if (cadastralToggle) cadastralToggle.hidden = !ENABLE_WMS;
     drawParcelOutline(detail);
   }
 
