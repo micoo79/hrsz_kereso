@@ -25,10 +25,6 @@
   // írd ide az URL-jét. Üresen hagyva a nyilvános proxyk a tartalék.
   const PROXY_BASE = "https://hrszkereso.micoo79.workers.dev/?url=";
 
-  // A telekhatár WMS-réteg az oeny.hu-t a böngészőből KÖZVETLENÜL terheli
-  // (sok csempe-kérés). Egyelőre kikapcsolva, hogy ne váltson ki tiltást.
-  const ENABLE_WMS = false;
-
   // A próbálkozási sorrend: saját proxy (ha van) -> közvetlen -> nyilvános proxyk.
   // Több nyilvános proxy is szerepel tartaléknak, mert ezek egyenként
   // megbízhatatlanok lehetnek; ha az egyik nem elérhető, jön a következő.
@@ -43,21 +39,17 @@
   // Az a proxy-index, amelyik utoljára működött (gyorsítótár).
   let workingProxy = null;
 
-  // Sikeres válaszok gyorsítótára (kevesebb ismételt kérés az OENY felé).
-  const oenyCache = new Map();
-
   // ---- Segédfüggvények ----
 
   // Lekér egy OENY-útvonalat, végigpróbálva a proxy-láncot.
   async function fetchOeny(path) {
-    if (oenyCache.has(path)) return oenyCache.get(path);
     const fullUrl = OENY_BASE + path;
     const order =
       workingProxy === null
         ? PROXY_CHAIN.map((_, i) => i)
         : [workingProxy, ...PROXY_CHAIN.map((_, i) => i).filter((i) => i !== workingProxy)];
 
-    const errors = [];
+    let lastError;
     for (const i of order) {
       try {
         const res = await fetch(PROXY_CHAIN[i](fullUrl), {
@@ -66,15 +58,12 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         workingProxy = i; // jegyezzük meg a működő utat
-        oenyCache.set(path, data);
         return data;
       } catch (err) {
-        errors.push({ i, msg: err.message });
+        lastError = err;
       }
     }
-    // A diagnosztikához az elsődleges (Worker, index 0) hibáját preferáljuk.
-    const primary = errors.find((e) => e.i === 0);
-    throw new Error((primary || errors[0] || { msg: "ismeretlen hiba" }).msg);
+    throw lastError || new Error("Ismeretlen hiba");
   }
 
   // Az első létező, nem üres mezőt adja vissza a megadott kulcsok közül.
@@ -124,7 +113,6 @@
   const mapToggle = document.getElementById("map-toggle");
   const svButton = document.getElementById("sv-btn");
   const mapCanvas = document.getElementById("gmap");
-  const cadastralToggle = document.getElementById("cadastral-toggle");
 
   // A kiválasztott település (név + KSH-kód).
   let selectedSettlement = null;
@@ -176,7 +164,7 @@
   const searchSettlements = debounce(async function () {
     const term = settlementInput.value.trim();
     selectedSettlement = null;
-    if (term.length < 3) {
+    if (term.length < 2) {
       settlementList.hidden = true;
       return;
     }
@@ -189,14 +177,15 @@
     } catch (err) {
       settlementList.hidden = true;
       showStatus(
-        "Nem sikerült elérni az OENY-t a proxyn keresztül (" + err.message + "). " +
-          "Ellenőrizd, hogy a Cloudflare Worker fut-e, vagy próbáld újra.",
+        "Nem sikerült elérni az OENY település-keresőt (" + err.message + "). " +
+          "A nyilvános proxyk épp nem elérhetők – állíts be saját Cloudflare Workert " +
+          "(lásd cloudflare-worker.js).",
         true
       );
     } finally {
       toggleSpinner("settlement", false);
     }
-  }, 500);
+  }, 300);
 
   // ---- Helyrajzi szám autocomplete ----
   function renderLotSuggestions(items) {
@@ -272,7 +261,7 @@
     } finally {
       toggleSpinner("lotNumber", false);
     }
-  }, 450);
+  }, 300);
 
   // A térkép-réteghez később felhasználható geometria (EOV / EPSG:23700).
   let lastParcelGeometry = null;
@@ -628,57 +617,12 @@
         fullscreenControl: true,
       });
       gmarker = new google.maps.Marker({ map: gmap, position: pos });
-      if (ENABLE_WMS) setupCadastralLayer();
     } else {
       gmap.setCenter(pos);
       gmarker.setPosition(pos);
     }
 
-    if (cadastralToggle) cadastralToggle.hidden = !ENABLE_WMS;
     drawParcelOutline(detail);
-  }
-
-  // ---- Telekhatár-réteg (OENY GeoServer WMS, hrsz:foldreszlet) ----
-  // A csempék <img>-ként töltődnek (nem kell CORS), EPSG:3857-ben kérve,
-  // hogy illeszkedjenek a Google-térképhez.
-  let cadastralWms = null;
-  let cadastralVisible = true;
-
-  function setupCadastralLayer() {
-    cadastralWms = new google.maps.ImageMapType({
-      name: "Telekhatár",
-      tileSize: new google.maps.Size(256, 256),
-      getTileUrl: function (coord, zoom) {
-        // Csak közeli zoomnál töltünk csempét – így a térkép-mozgatás nem
-        // terheli feleslegesen az OENY szerverét (telekhatár csak ott értelmes).
-        if (zoom < 16) return null;
-        const ext = 20037508.342789244; // Web Mercator fél-kiterjedés (m)
-        const res = (2 * ext) / (256 * (1 << zoom));
-        const minX = -ext + coord.x * 256 * res;
-        const maxX = minX + 256 * res;
-        const maxY = ext - coord.y * 256 * res;
-        const minY = maxY - 256 * res;
-        return (
-          "https://www.oeny.hu/hk-geoserver/hrsz/wms?SERVICE=WMS&VERSION=1.1.1" +
-          "&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true" +
-          "&LAYERS=hrsz:foldreszlet&STYLES=&WIDTH=256&HEIGHT=256&SRS=EPSG:3857" +
-          "&BBOX=" + [minX, minY, maxX, maxY].join(",")
-        );
-      },
-    });
-    if (cadastralVisible) gmap.overlayMapTypes.push(cadastralWms);
-  }
-
-  function toggleCadastralLayer() {
-    if (!gmap || !cadastralWms) return;
-    cadastralVisible = !cadastralVisible;
-    if (cadastralVisible) {
-      gmap.overlayMapTypes.push(cadastralWms);
-    } else {
-      const idx = gmap.overlayMapTypes.getArray().indexOf(cadastralWms);
-      if (idx >= 0) gmap.overlayMapTypes.removeAt(idx);
-    }
-    if (cadastralToggle) cadastralToggle.classList.toggle("is-active", cadastralVisible);
   }
 
   // A telekhatárt rajzolja ki a bounding-box outline poligonjából (EOV -> WGS84).
@@ -812,8 +756,6 @@
   settlementInput.addEventListener("focus", () => {
     if (settlementList.children.length && !selectedSettlement) settlementList.hidden = false;
   });
-
-  if (cadastralToggle) cadastralToggle.addEventListener("click", toggleCadastralLayer);
 
   lotInput.addEventListener("input", searchLots);
   lotInput.addEventListener("focus", () => {

@@ -42,16 +42,8 @@ export default {
       return new Response("Nem engedélyezett cél.", { status: 403, headers: corsHeaders });
     }
 
-    // Böngészőszerű fejlécek, hogy az OENY ne automatikus botnak vegye a kérést.
     const upstream = await fetch(parsed.toString(), {
-      headers: {
-        Accept: "application/json",
-        "Accept-Language": "hu-HU,hu;q=0.9",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-          "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        Referer: "https://www.oeny.hu/oeny/hrsz-kereso/",
-      },
+      headers: { Accept: "application/json" },
     });
 
     const body = await upstream.arrayBuffer();
